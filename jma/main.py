@@ -63,6 +63,13 @@ def create_weather_card(date, weather, min_temp, max_temp):
         shadow=ft.BoxShadow(blur_radius=5, color="lightgray"),
     )
 
+# グリッドレイアウト作成関数
+def create_weather_grid(cards, columns=3):
+    rows = []
+    for i in range(0, len(cards), columns):
+        rows.append(ft.Row(cards[i:i + columns], spacing=10))
+    return ft.Column(rows, spacing=10)
+
 # メインアプリケーション
 def main(page: ft.Page):
     page.title = "天気予報アプリ"
@@ -78,7 +85,7 @@ def main(page: ft.Page):
         options=[ft.dropdown.Option(key, value["name"]) for key, value in areas_data.items()],
         width=300,
     )
-    weather_output = ft.Wrap(spacing=10, run_spacing=10)
+    weather_output = ft.Column(spacing=10)
 
     def show_weather(e):
         selected_region_key = region_dropdown.value
@@ -105,7 +112,7 @@ def main(page: ft.Page):
                         max_temp = forecast.get("tempsMax", [None])[i] or "-"
                         weather_cards.append(create_weather_card(date, weather, min_temp, max_temp))
 
-        weather_output.controls = weather_cards if weather_cards else [ft.Text("天気情報がありません。")]
+        weather_output.controls = [create_weather_grid(weather_cards)] if weather_cards else [ft.Text("天気情報がありません。")]
         page.update()
 
     # サイドバー作成
@@ -137,6 +144,7 @@ def main(page: ft.Page):
 
 if __name__ == "__main__":
     ft.app(target=main)
+
 
 
 
