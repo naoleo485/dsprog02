@@ -2,7 +2,7 @@ import json
 import requests
 import flet as ft
 
-# areas.json をロード
+# 地域データ読み込み
 def load_areas(file_path):
     with open(file_path, "r", encoding="utf-8") as file:
         return json.load(file)
@@ -20,28 +20,47 @@ def fetch_weather(area_code):
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}
 
-# カードを作成するヘルパー関数
+# 天気アイコン取得関数
+def get_weather_icon(weather):
+    if "晴" in weather:
+        return ft.icons.WB_SUNNY
+    elif "雨" in weather:
+        return ft.icons.UMBRELLA
+    elif "曇" in weather:
+        return ft.icons.WB_CLOUDY
+    elif "雪" in weather:
+        return ft.icons.AC_UNIT
+    else:
+        return ft.icons.HELP
+
+# カード作成関数
 def create_weather_card(date, weather, min_temp, max_temp):
+    weather_icon = ft.Icon(get_weather_icon(weather), size=40, color="orange")
     return ft.Container(
         content=ft.Column(
             [
-                ft.Text(date, size=16, weight="bold"),
+                ft.Text(date, size=14, weight="bold"),
+                weather_icon,
                 ft.Text(weather, size=14),
                 ft.Row(
                     [
-                        ft.Text(f"最低: {min_temp}°C", size=12),
-                        ft.Text(f"最高: {max_temp}°C", size=12),
+                        ft.Text(f"{min_temp}°C", size=12, color="blue"),
+                        ft.Text(f"{max_temp}°C", size=12, color="red"),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
             ],
             spacing=5,
+            alignment=ft.MainAxisAlignment.CENTER,
         ),
         width=150,
-        height=120,
+        height=200,
         padding=10,
         border=ft.border.all(1, "lightgray"),
-        border_radius=8,
+        border_radius=10,
+        alignment=ft.alignment.center,
+        bgcolor="#FFFFFF",
+        shadow=ft.BoxShadow(blur_radius=5, color="lightgray"),
     )
 
 # メインアプリケーション
@@ -49,20 +68,19 @@ def main(page: ft.Page):
     page.title = "天気予報アプリ"
     page.scroll = ft.ScrollMode.ALWAYS
 
-    # 地域データの読み込み
+    # 地域データ読み込み
     areas_file_path = "jma/areas.json"  # ファイルパスを調整
     areas_data = load_areas(areas_file_path)["centers"]
 
-    # サイドバーに地域リストを表示
+    # 地域選択ドロップダウン
     region_dropdown = ft.Dropdown(
         label="地域を選択",
         options=[ft.dropdown.Option(key, value["name"]) for key, value in areas_data.items()],
         width=300,
     )
-    weather_output = ft.Column(spacing=10)
+    weather_output = ft.Wrap(spacing=10, run_spacing=10)
 
     def show_weather(e):
-        # 選択された地域
         selected_region_key = region_dropdown.value
         if not selected_region_key:
             weather_output.controls = [ft.Text("地域を選択してください。")]
@@ -79,7 +97,6 @@ def main(page: ft.Page):
                 weather_cards.append(ft.Text(f"エラー: {weather_data['error']}"))
                 continue
 
-            # 天気情報を処理
             for forecast in weather_data[0]["timeSeries"][0]["areas"]:
                 if forecast["area"]["code"] == code:
                     for i, date in enumerate(weather_data[0]["timeSeries"][0]["timeDefines"]):
@@ -88,11 +105,10 @@ def main(page: ft.Page):
                         max_temp = forecast.get("tempsMax", [None])[i] or "-"
                         weather_cards.append(create_weather_card(date, weather, min_temp, max_temp))
 
-        # 出力を更新
         weather_output.controls = weather_cards if weather_cards else [ft.Text("天気情報がありません。")]
         page.update()
 
-    # サイドバーの作成
+    # サイドバー作成
     sidebar = ft.Container(
         content=ft.Column(
             [
@@ -103,23 +119,22 @@ def main(page: ft.Page):
             spacing=20,
         ),
         width=300,
-        height=600,
-        padding=10,
+        padding=20,
         bgcolor="#f4f4f4",
         border=ft.border.all(1, "lightgray"),
+        border_radius=10,
     )
 
-    # ページレイアウト
+    # レイアウト作成
     page.add(
         ft.Row(
             [
                 sidebar,
                 ft.Container(content=weather_output, padding=20, expand=True),
-            ],
+            ]
         )
     )
 
-# 実行
 if __name__ == "__main__":
     ft.app(target=main)
 
